@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+ <head>
+	<title>My snake game</title>
+  <meta charset="utf-8"/>
+  <link rel="stylesheet" href="styles.css">
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+  <script type="application/javascript">
+	document.addEventListener('keydown', function(event) {
+		if(gameover != 1){
+			if(event.keyCode == 37 && snake['dir'] != "right") {
+				snake['dir'] = 'left';
+			} else if(event.keyCode == 39 && snake['dir'] != "left") {
+				snake['dir'] = 'right';
+			} else if(event.keyCode == 38 && snake['dir'] != "down") {
+				snake['dir'] = 'up';
+			} else if(event.keyCode == 40 && snake['dir'] != "up") {
+				snake['dir'] = 'down';
+			}
+		}
+	});
+	
+	class LinkedListNode {
+		constructor(x,y) {
+			this.x = x;
+			this.y = y;
+			this.next = null;
+			this.prev = null;
+		}
+	}
+
+  
+	var nIntervId;
+	var grid;
+	var snake;
+	var gameover = 0;
+	
+	var parameterx = 10;
+	var parametery = 10;
+	
+	function animation(){
+		init(parameterx,parametery);
+		nIntervId = setInterval(draw, 300);
+    }
+	
+	function make_grid(x,y){
+		var grid = new Array(x)
+		var i = 0;
+		while(i<x){
+			grid[i] = new Array(y);
+			var j = 0;
+			while(j<y){
+				grid[i][j] = 0;
+				j++;
+			}
+			i++;
+		}
+		return grid;
+	}
+	
+	function init(x,y){
+		grid = make_grid(x,y)
+		snake = {}
+		var food = new Array(2)
+		var dir_arr = ["up", "down", "left", "right"]
+		snake["dir"] = dir_arr[Math.floor(Math.random() * dir_arr.length)];
+		var head = new LinkedListNode(Math.floor(Math.random() * x),Math.floor(Math.random() * y));
+		snake["head"] = head
+		snake["tail"] = head
+		grid[snake["head"].x][snake["head"].y] = 1;
+		
+		do {
+		food[0] = Math.floor(Math.random() * x);
+		food[1] = Math.floor(Math.random() * y);
+		} while(grid[food[0]][food[1]] == 1);
+		grid[food[0]][food[1]] = -1;
+	}
+	
+	function update(){
+		 oldx = snake['head'].x;
+		 oldy = snake['head'].y;
+		if(snake["dir"] == "up" && snake['head'].y != 0){
+			snake['head'].y -=1
+		} else if(snake["dir"] == "down" && snake['head'].y != (parametery-1)){
+			snake['head'].y +=1
+		} else if(snake["dir"] == "right" && snake['head'].x != (parameterx-1)){
+			snake['head'].x +=1
+		} else if(snake["dir"] == "left" && snake['head'].x != 0){
+			snake['head'].x -=1
+		} else{
+			gameover == 1;
+			clearInterval(nIntervId);
+			return;
+		}
+		
+		if (grid[snake['head'].x][snake['head'].y] == 0){
+			grid[snake['head'].x][snake['head'].y] = 1;
+			
+			if(snake['head'] != snake['tail']){
+				var tail = new LinkedListNode(oldx,oldy);
+				var temp = snake['head'].next
+				snake['head'].next = tail;
+				tail.prev = snake['head'];
+				tail.next = temp;
+				temp.prev = tail;
+				
+				
+				grid[snake['tail'].x][snake['tail'].y] = 0;
+				var temp2 = snake['tail'];
+				snake['tail'] = snake['tail'].prev;
+				snake['tail'].next = null;
+				temp2.prev = null;
+				grid[snake['tail'].x][snake['tail'].y] = 1;
+			} else{
+				grid[oldx][oldy] = 0;
+			}
+			
+		} else if(grid[snake['head'].x][snake['head'].y] == -1){
+			var tail = new LinkedListNode(oldx,oldy);
+			
+			if(snake['head'] !== snake['tail']){
+				var temp = snake['head'].next;
+				snake['head'].next = tail;
+				tail.prev = snake['head'];
+				tail.next = temp;
+				temp.prev = tail;
+			} else{
+				snake['tail'] = tail;
+				snake['tail'].prev = snake['head'];
+				snake['head'].next = tail;
+			}
+				
+			var food = new Array(2)
+			do {
+			food[0] = Math.floor(Math.random() * parameterx);
+			food[1] = Math.floor(Math.random() * parametery);
+			} while(grid[food[0]][food[1]] != 0);
+			grid[food[0]][food[1]] = -1;
+			
+			grid[oldx][oldy] = 1;
+			grid[snake['head'].x][snake['head'].y]= 1;
+		} else if(grid[snake['head'].x][snake['head'].y] == 1){
+			gameover == 1;
+			clearInterval(nIntervId);
+		}
+	}
+  
+    function draw(){
+      var canvas = document.getElementById('canvas');
+      if (canvas.getContext) {
+		var ctx = canvas.getContext('2d');
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		
+		var gridsize_x = Math.floor(canvas.width / parameterx);
+		var gridsize_y = Math.floor(canvas.height / parametery);
+		
+		ctx.beginPath();
+		for (var x = 0; x < canvas.width; x += gridsize_x) {
+		  ctx.moveTo(x, 0);
+		  ctx.lineTo(x, canvas.height-1);
+		}
+
+		for (var y = 0; y < canvas.height; y += gridsize_y) {
+		  ctx.moveTo(0, y);
+		  ctx.lineTo(canvas.width-1, y);
+		}
+		
+		ctx.strokeStyle = "#ddd";
+		ctx.closePath();
+		ctx.stroke();
+
+		var x = 0;
+		var xmax = grid.length
+		while(x < xmax){
+			var y = 0;
+			var ymax = grid[x].length;
+			while(y<ymax){
+				if(grid[x][y] == 1){
+					if(x == snake['head'].x && y == snake['head'].y){
+						console.log(snake['head'].x)
+						console.log(snake['head'].y)
+						ctx.beginPath();
+						if(snake['dir'] == "right"){
+							ctx.moveTo(gridsize_x*x+(Math.floor(gridsize_x/2)), gridsize_y*y+(Math.floor(gridsize_y/2)));
+							ctx.lineTo(gridsize_x*x, gridsize_y*y+gridsize_y);
+							ctx.lineTo(gridsize_x*x, gridsize_y*y);
+						} else if(snake['dir'] == "left") {
+							ctx.moveTo(gridsize_x*x+(Math.floor(gridsize_x/2)), gridsize_y*y+(Math.floor(gridsize_y/2)));
+							ctx.lineTo(gridsize_x*x+gridsize_x, gridsize_y*y);
+							ctx.lineTo(gridsize_x*x+gridsize_x, gridsize_y*y+gridsize_y);
+						} else if(snake['dir'] == "up") {
+							ctx.moveTo(gridsize_x*x+(Math.floor(gridsize_x/2)), gridsize_y*y+(Math.floor(gridsize_y/2)));
+							ctx.lineTo(gridsize_x*x+gridsize_x, gridsize_y*y+gridsize_y);
+							ctx.lineTo(gridsize_x*x, gridsize_y*y+gridsize_y);
+						} else if(snake['dir'] == "down") {
+							ctx.moveTo(gridsize_x*x+(Math.floor(gridsize_x/2)), gridsize_y*y+(Math.floor(gridsize_y/2)));
+							ctx.lineTo(gridsize_x*x, gridsize_y*y);
+							ctx.lineTo(gridsize_x*x+gridsize_x, gridsize_y*y);
+						}
+						ctx.closePath();
+						ctx.fill();
+					} else {
+						ctx.beginPath();
+						ctx.rect(gridsize_x*x,gridsize_x*y,gridsize_x,gridsize_y);
+						ctx.closePath();
+						ctx.fill();
+					}
+				}else if(grid[x][y] == -1){
+					ctx.beginPath();
+					ctx.arc(gridsize_x*x+(Math.floor(gridsize_x/2)), gridsize_y*y+Math.floor(gridsize_y/2), Math.floor(gridsize_x/4), 0, 2 * Math.PI);
+					ctx.closePath();
+					ctx.fill();
+				}
+				y++;
+			}
+			x++;
+		}
+		
+		update()
+		
+		
+      }
+    }
+  </script>
+ </head>
+ <body>
+	 <header>
+		<ul>
+			<a href="./snake.html"><li id="current">GAME</li></a>
+			<a href="./aboutme.html"><li>ABOUT ME</li></a>
+			<a href="./certificates.html"><li>CERTIFICATES</li></a>
+			<a><li>X</li></a>
+			<a><li>X</li></a>
+			<a><li>X</li></a>
+			<a><li>X</li></a>
+		</ul>
+	 </header>
+	<div id="main">
+		<div id="center">
+			<h1> Snake </h1>
+			<canvas onclick="animation(); this.onclick=null;" id="canvas" width="600" height="600">PLAY</canvas>
+		</div>
+	</div>
+	
+	<footer>
+		
+	</footer>
+   
+ </body>
+</html>
